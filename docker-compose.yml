@@ -1,138 +1,51 @@
 services:
-  db-app:
-    image: postgres:13
-    container_name: db-app
-    environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin
-      POSTGRES_DB: app
-    volumes:
-      - db_data:/var/lib/postgresql/data
-    networks:
-      - networkapp
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  migrate-app:
-    image: node:22
-    container_name: migrate-app
-    working_dir: /app
-    volumes:
-      - ./Services:/app
-    command: sh -c "npm install && npx prisma migrate deploy && npx prisma db push"
-    depends_on:
-      db-app:
-        condition: service_healthy
-    env_file:
-      - ./Services/.env
-    networks:
-      - networkapp
-    restart: "on-failure"
-
-  gateway-app:
-    image: node:22
-    container_name: gateway-app
-    working_dir: /app
-    volumes:
-      - ./Services:/app
-    ports:
-      - "4000:4000"
-    command: sh -c "npm run start:dev"
-    depends_on:
-      migrate-app:
-        condition: service_completed_successfully
-      user-app:
-        condition: service_healthy
-      auth-app:
-        condition: service_healthy
-      password-app:
-        condition: service_healthy
-    env_file:
-      - ./Services/.env
-    networks:
-      - networkapp
-    restart: "always"
-
-  user-app:
-    image: node:22
-    container_name: service-user-app
-    working_dir: /app
-    volumes:
-      - ./Services:/app
-    ports:
-      - "4001:4001"
-    command: sh -c "npm run start:dev user"
-    depends_on:
-      db-app:
-        condition: service_healthy
-      migrate-app:
-        condition: service_completed_successfully
-    env_file:
-      - ./Services/.env
-    networks:
-      - networkapp
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f -XPOST -H 'Content-Type: application/json' -d '{\"query\": \"{ healthCheck }\"}' http://user-app:4001/graphql || exit 1"]
-      interval: 5s
-      timeout: 10s
-      retries: 10
-    restart: "on-failure"
-
   auth-app:
-    image: node:22
+    build:
+      context: ./Services
+      dockerfile: ./apps/auth/Dockerfile
     container_name: service-auth-app
-    working_dir: /app
-    volumes:
-      - ./Services:/app
     ports:
       - "4002:4002"
-    command: sh -c "npm run start:dev auth"
-    depends_on:
-      db-app:
-        condition: service_healthy
-      migrate-app:
-        condition: service_completed_successfully
     env_file:
       - ./Services/.env
     networks:
       - networkapp
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f -XPOST -H 'Content-Type: application/json' -d '{\"query\": \"{ healthCheck }\"}' http://auth-app:4002/graphql || exit 1"]
-      interval: 5s
-      timeout: 10s
-      retries: 10
-    restart: "on-failure"
+
+  gateway-app:
+    build:
+      context: ./Services
+      dockerfile: ./apps/gateway/Dockerfile
+    container_name: service-gateway-app
+    ports:
+      - "4000:4000"
+    env_file:
+      - ./Services/.env
+    networks:
+      - networkapp
+
+  user-app:
+    build:
+      context: ./Services
+      dockerfile: ./apps/user/Dockerfile
+    container_name: service-user-app
+    ports:
+      - "4001:4001"
+    env_file:
+      - ./Services/.env
+    networks:
+      - networkapp
 
   password-app:
-    image: node:22
+    build:
+      context: ./Services
+      dockerfile: ./apps/password/Dockerfile
     container_name: service-password-app
-    working_dir: /app
-    volumes:
-      - ./Services:/app
     ports:
       - "4003:4003"
-    command: sh -c "npm run start:dev password"
-    depends_on:
-      db-app:
-        condition: service_healthy
-      migrate-app:
-        condition: service_completed_successfully
     env_file:
       - ./Services/.env
     networks:
       - networkapp
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f -XPOST -H 'Content-Type: application/json' -d '{\"query\": \"{ healthCheck }\"}' http://password-app:4003/graphql || exit 1"]
-      interval: 5s
-      timeout: 10s
-      retries: 10
-    restart: "on-failure"
-
-volumes:
-  db_data:
 
 networks:
   networkapp:
