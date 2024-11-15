@@ -17,9 +17,9 @@ import {IntrospectAndCompose} from "@apollo/gateway";
             gateway: {
                 supergraphSdl: new IntrospectAndCompose({
                     subgraphs: [
-                        {name: "user", url: `http://user-chatapp:${process.env.PORT_USER}/graphql`},
-                        {name: "auth", url: `http://auth-chatapp:${process.env.PORT_AUTH}/graphql`},
-                        {name: "password", url: `http://password-chatapp:${process.env.PORT_PASSWORD}/graphql`},
+                        {name: "user", url: `http://user-app:${process.env.PORT_USER}/graphql`},
+                        {name: "auth", url: `http://auth-app:${process.env.PORT_AUTH}/graphql`},
+                        {name: "password", url: `http://password-app:${process.env.PORT_PASSWORD}/graphql`},
                     ],
                     pollIntervalInMs: 1000,
                 }),
